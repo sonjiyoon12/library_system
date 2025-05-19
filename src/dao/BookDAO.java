@@ -61,12 +61,12 @@ public class BookDAO {
     public List<Book> searchBooksTitle(String searchTitle) throws SQLException {
         List<Book> bookList = new ArrayList<>();
         String sql = "select * from books where title like ? ";
-        try(Connection conn = DatabaseUtil.getConnection();
-            PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            pstmt.setString(1,"%" + searchTitle + "%");
+        try (Connection conn = DatabaseUtil.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, "%" + searchTitle + "%");
             ResultSet rs = pstmt.executeQuery();
 
-            while(rs.next()){
+            while (rs.next()) {
                 int id = rs.getInt("id");
                 String title = rs.getString("title");
                 String author = rs.getString("author");

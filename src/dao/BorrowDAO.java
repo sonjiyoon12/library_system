@@ -78,19 +78,19 @@ public class BorrowDAO {
     public void returnBook(int bookId, int studentPk) throws SQLException {
         // studentPk --> borrows 테이블에 student_id 컬럼이다.
         // 즉, students 테이블에 pk를 의미한다.
-        String sql ="select * from borrows where book_id = ? and student_id = ? and return_date is null ";
-        try(Connection conn = DatabaseUtil.getConnection();
-            PreparedStatement checkPstmt = conn.prepareStatement(sql)) {
-            checkPstmt.setInt(1,bookId);
-            checkPstmt.setInt(2,studentPk);
+        String sql = "select * from borrows where book_id = ? and student_id = ? and return_date is null ";
+        try (Connection conn = DatabaseUtil.getConnection();
+             PreparedStatement checkPstmt = conn.prepareStatement(sql)) {
+            checkPstmt.setInt(1, bookId);
+            checkPstmt.setInt(2, studentPk);
             ResultSet rs = checkPstmt.executeQuery();
 
-            if(rs.next()){
+            if (rs.next()) {
                 String updateSql1 = "update borrows set return_date = current_date where id = ? ";
                 String updateSql2 = "update books set available = true where id = ? ";
 
-                try(PreparedStatement borrowStmt = conn.prepareStatement(updateSql1);
-                    PreparedStatement updateStmt = conn.prepareStatement(updateSql2)) {
+                try (PreparedStatement borrowStmt = conn.prepareStatement(updateSql1);
+                     PreparedStatement updateStmt = conn.prepareStatement(updateSql2)) {
                     // 조회된 borrows 테이블 pk 값에 접근해서 return_date 값을 오늘(반납일자) update 처리 해야 한다.
                     borrowStmt.setInt(1, rs.getInt("id"));
                     borrowStmt.executeUpdate();
@@ -107,7 +107,7 @@ public class BorrowDAO {
         try {
             // borrowDAO.borrowBook(4, 2);
             //현재 대출 중인 책 목록 조회
-            for(int i =0; i < borrowDAO.getBorrowedBooks().size(); i++){
+            for (int i = 0; i < borrowDAO.getBorrowedBooks().size(); i++) {
                 System.out.println(borrowDAO.getBorrowedBooks().get(i));
             }
         } catch (SQLException e) {
