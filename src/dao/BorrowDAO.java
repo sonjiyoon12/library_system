@@ -60,7 +60,7 @@ public class BorrowDAO {
                 borrowDTO.setStudentId(rs.getInt("student_id"));
                 // JAVA DTO 에서 데이터 타입은 LocalDate 이다.
                 // 하지만 JDBC API 에서 아직은 LocalDate 타입을 지원하지 않는다.
-                // JDBC API  재공하는 날짜 데이터 타입은 Date 이다.
+                // JDBC API  제공하는 날짜 데이터 타입은 Date 이다.
                 // rs.getLocalDate <-- 아직은 지원 안함
                 // rs.getDate("borrow_date");
                 borrowDTO.setBorrowDate(rs.getDate("borrow_date").toLocalDate());
