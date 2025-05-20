@@ -75,28 +75,64 @@ public class BorrowDAO {
     // 1. borrows 테이블에 책 정보 조회(check) -- select (복합 조건)
     // 2. borrows 테이블에 return_date 수정 --- update
     // 3. books 테이블에 available 수정 --- update
+    // studentPk --> borrows 테이블에 student_id 컬럼이다.
+    // 즉, students 테이블에 pk를 의미한다.
+    // try with resource
+    // try catch
+    // 트랜잭션
     public void returnBook(int bookId, int studentPk) throws SQLException {
-        // studentPk --> borrows 테이블에 student_id 컬럼이다.
-        // 즉, students 테이블에 pk를 의미한다.
-        String sql = "select * from borrows where book_id = ? and student_id = ? and return_date is null ";
-        try (Connection conn = DatabaseUtil.getConnection();
-             PreparedStatement checkPstmt = conn.prepareStatement(sql)) {
-            checkPstmt.setInt(1, bookId);
-            checkPstmt.setInt(2, studentPk);
-            ResultSet rs = checkPstmt.executeQuery();
+        Connection conn = null;
+        try {
+            conn = DatabaseUtil.getConnection();
 
-            if (rs.next()) {
-                String updateSql1 = "update borrows set return_date = current_date where id = ? ";
-                String updateSql2 = "update books set available = true where id = ? ";
+            // 트랜잭션 시작
+            conn.setAutoCommit(false);
 
-                try (PreparedStatement borrowStmt = conn.prepareStatement(updateSql1);
-                     PreparedStatement updateStmt = conn.prepareStatement(updateSql2)) {
-                    // 조회된 borrows 테이블 pk 값에 접근해서 return_date 값을 오늘(반납일자) update 처리 해야 한다.
-                    borrowStmt.setInt(1, rs.getInt("id"));
-                    borrowStmt.executeUpdate();
-                    updateStmt.setInt(1, bookId);
-                    updateStmt.executeUpdate();
+            // 이 쿼리의 결과집합에서 필요한 것은 borrows의 pk(id) 값 이다.
+            // 1. (book_id) 반납 하려는 특정 책을 찾아야 된다.
+            // 2. (student_id) 책을 빌린 학생을 찾기 위함
+            // 2.1 다른 학생이 책을 빌린 이력도 있을 수 있다.(다른 학생과 혼동을 막기 위해)
+            // 3. 아직 반납되지 않은 대출 기록만 찾아야함
+            // 3.1 같은 학생이 예전에 여러번 빌린 이력이 있을 수 있다.
+
+            int borrowId = 0;
+            String checkSql = "select id from borrows where book_id = ? " +
+                    "and student_id = ? and return_date is null ";
+
+            try (PreparedStatement checkPstmt = conn.prepareStatement(checkSql)) {
+                checkPstmt.setInt(1, bookId);
+                checkPstmt.setInt(2, studentPk);
+                ResultSet rs = checkPstmt.executeQuery();
+                if (!rs.next()) {
+                    // 못 찾았다면
+                    throw new SQLException("해당 대출 기록이 존재하지 않거나 이미 반납되었습니다.");
                 }
+                borrowId = rs.getInt("id");
+            }
+
+            String updateBorrowSql = "update borrows set return_date = current_date where id = ? ";
+            String updateBookSql = "update books set available = true where id = ? ";
+
+            try (PreparedStatement borrowPstmt = conn.prepareStatement(updateBorrowSql);
+                 PreparedStatement bookPstmt = conn.prepareStatement(updateBookSql)) {
+                // borrows 설정
+                borrowPstmt.setInt(1, borrowId);
+                bookPstmt.executeUpdate(); // 쿼리 실행
+
+                // book 설정
+                bookPstmt.setInt(1, bookId);
+                bookPstmt.executeUpdate();
+            }
+            conn.commit(); // 트랜잭션처리 완료 (영구히 저장)
+        } catch (SQLException e) {
+            if (conn != null) {
+                conn.rollback(); // 오류 발생 시 롤백 처리
+            }
+            System.err.println("rollback 처리를 하였습니다.");
+        } finally {
+            if (conn != null){
+                conn.setAutoCommit(true); // 다시 오토커밋 설정
+                conn.close(); // 자원을 닫아야 메모리 누수가 발생하지 않는다.
             }
         }
     }
